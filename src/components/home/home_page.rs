@@ -17,6 +17,7 @@ impl Render for TodoListHome {
         _window: &mut gpui::Window,
         cx: &mut gpui::Context<Self>,
     ) -> impl gpui::IntoElement {
+        // cx.new会在每次渲染都创建新实体，每次新创建的实体都会导致原本的上下文失效。
         if self.home_header.is_none() {
             self.home_header = Some(cx.new(|_cx| HomeHeader::new()));
         }

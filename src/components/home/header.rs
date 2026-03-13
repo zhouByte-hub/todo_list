@@ -56,7 +56,7 @@ impl HomeHeader {
             .h(px(120.0))
             .bg(Hsla::white())
             .rounded(px(10.0))
-            .top(px(90.0))
+            .top(px(75.0))
             .shadow_sm()
             .flex()
             .flex_col()
