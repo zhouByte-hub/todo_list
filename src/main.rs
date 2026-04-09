@@ -38,8 +38,11 @@ fn main() {
         app.spawn(async move |app| -> Result<()> {
             let root_window = app.open_window(window_options, |window, cx| {
                 // window.set_window_title("Todo List");
+                // 创建主页视图实体
                 let home_page = cx.new(|_| TodoListHome::default());
+                // 创建布局实体，并将主页视图作为其子组件
                 let layout = cx.new(|_| TodoLayout::default(Some(home_page.into())));
+                // 创建根组件实体，作为窗口的第一级子元素，启用 GPUI Component 功能
                 cx.new(|cx| Root::new(layout, window, cx))
             });
             if let Err(e) = root_window {
