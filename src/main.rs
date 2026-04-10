@@ -5,13 +5,16 @@ use gpui::{AppContext, Application, Bounds, Pixels, Size, WindowBounds};
 use gpui_component::{Root, Theme};
 use tokio::io::AsyncWriteExt;
 
-use crate::{
-    components::{home::home_page::TodoListHome, layout::TodoLayout},
-    todo_icon_assets::TodoIconAssets,
-};
+use crate::{components::layout::TodoLayout, todo_icon_assets::TodoIconAssets};
 mod components;
 mod todo_icon_assets;
 
+/**
+   - 实体创建时机 ：在 new() 或 default() 方法中创建实体，而不是在 render() 中
+   - 状态管理 ：缓存页面实体，避免重复创建导致状态丢失
+   - 异步操作 ：在初始化时执行，避免在 render 中重复触发
+   - 订阅管理 ：在构造函数中建立订阅，确保只订阅一次
+*/
 fn main() {
     Application::new().with_assets(TodoIconAssets).run(|app| {
         app.set_global(Theme::default());
@@ -37,11 +40,8 @@ fn main() {
 
         app.spawn(async move |app| -> Result<()> {
             let root_window = app.open_window(window_options, |window, cx| {
-                // window.set_window_title("Todo List");
-                // 创建主页视图实体
-                let home_page = cx.new(|_| TodoListHome::default());
-                // 创建布局实体，并将主页视图作为其子组件
-                let layout = cx.new(|_| TodoLayout::default(Some(home_page.into())));
+                // 创建布局实体，并初始化首页
+                let layout = cx.new(|cx| TodoLayout::new(window, cx));
                 // 创建根组件实体，作为窗口的第一级子元素，启用 GPUI Component 功能
                 cx.new(|cx| Root::new(layout, window, cx))
             });

@@ -1,5 +1,5 @@
 use chrono::{Datelike, Local, Weekday};
-use gpui::{Corners, Hsla, ParentElement, Render, Styled, px};
+use gpui::{Corners, Hsla, ParentElement, Render, SharedString, Styled, px};
 use gpui_component::{StyledExt, hsl, progress::Progress};
 
 pub(crate) struct HomeHeader {
@@ -95,10 +95,22 @@ impl HomeHeader {
                         }
                     })),
             )
+            .child(self.process())
+    }
+
+    fn process(&mut self) -> impl gpui::IntoElement {
+        gpui::div()
+            .flex()
+            .flex_row()
+            .items_center()
+            .justify_center()
             .child(
                 Progress::new()
                     .value(self.progress)
-                    .bg(hsl(25.0, 100.0, 49.0)),
+                    .bg(hsl(25.0, 100.0, 49.0))
+                    .mr_2(),
             )
+            .child(SharedString::new(format!("{:.0}%", self.progress * 100.0)))
+            .text_color(hsl(0.0, 0.0, 47.0))
     }
 }

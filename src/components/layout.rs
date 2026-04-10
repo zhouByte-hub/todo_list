@@ -10,15 +10,17 @@ use gpui_component::{Icon, Sizable, StyledExt, hsl};
 
 #[derive(Debug)]
 pub(crate) struct TodoLayout {
-    selected_menu: usize, // 0: 首页，1：分类，2：提醒，3：我的
-    current_page: Option<AnyView>,
+    selected_menu: usize,
+    pages: [Option<AnyView>; 4],
 }
 
 impl TodoLayout {
-    pub fn default(current_page: Option<AnyView>) -> Self {
+    pub fn new(window: &mut gpui::Window, cx: &mut gpui::Context<Self>) -> Self {
+        let home_page = cx.new(|cx| TodoListHome::new(window, cx));
+        let pages: [Option<AnyView>; 4] = [Some(home_page.into()), None, None, None];
         Self {
             selected_menu: 0,
-            current_page,
+            pages,
         }
     }
 }
@@ -30,7 +32,7 @@ impl Render for TodoLayout {
         cx: &mut gpui::Context<Self>,
     ) -> impl gpui::IntoElement {
         let div: Div;
-        if let Some(current_page) = &self.current_page {
+        if let Some(current_page) = &self.pages[self.selected_menu] {
             div = gpui::div()
                 .bg(hsl(60.0, 22.0, 96.0))
                 .h_full()
@@ -58,7 +60,7 @@ impl Render for TodoLayout {
                 .text_size(px(24.0))
                 .text_color(hsl(0.0, 0.0, 58.0));
         }
-        return div;
+        div
     }
 }
 
@@ -148,16 +150,22 @@ impl TodoLayout {
             .active(|style| style.bg(gpui::transparent_black()))
             .cursor_pointer()
             .text_color(self.set_selected_menu_color(menu_index, self.selected_menu))
-            .on_click(cx.listener(move |this, _event, _window, cx| {
-                this.selected_menu = menu_index;
-                this.current_page = match menu_index {
-                    0 => Some(cx.new(|_| TodoListHome::default()).into()),
-                    1 => Some(cx.new(|_| CategoryPage::default()).into()),
-                    2 => Some(cx.new(|_| ReminderPage::default()).into()),
-                    3 => Some(cx.new(|_| ProfilePage::default()).into()),
-                    _ => None,
-                };
-                cx.notify();
+            .on_click(cx.listener(move |this, _event, window, cx| {
+                if this.selected_menu != menu_index {
+                    this.selected_menu = menu_index;
+
+                    if this.pages[menu_index].is_none() {
+                        this.pages[menu_index] = match menu_index {
+                            0 => Some(cx.new(|cx| TodoListHome::new(window, cx)).into()),
+                            1 => Some(cx.new(|_| CategoryPage::default()).into()),
+                            2 => Some(cx.new(|_| ReminderPage::default()).into()),
+                            3 => Some(cx.new(|_| ProfilePage::default()).into()),
+                            _ => None,
+                        };
+                    }
+
+                    cx.notify();
+                }
             }))
     }
 }

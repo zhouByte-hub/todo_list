@@ -2,9 +2,14 @@ use std::{env, fs, path::PathBuf};
 
 use anyhow::Result;
 use getset::{CloneGetters, Getters, MutGetters, Setters, WithSetters};
-use gpui::{AppContext, ElementId, Hsla, ParentElement, Render, SharedString, Styled, px};
+use gpui::{
+    AppContext, ElementId, Hsla, ParentElement, Render, SharedString, Styled, px, relative,
+};
 use gpui_component::{
-    Sizable, StyledExt, button::{Button, ButtonCustomVariant, ButtonVariants}, hsl, input::{Input, InputState}
+    Sizable, StyledExt,
+    button::{Button, ButtonCustomVariant, ButtonVariants},
+    hsl,
+    input::{Input, InputState},
 };
 use serde::{Deserialize, Serialize};
 
@@ -12,8 +17,10 @@ pub(crate) struct HomeMenu {
     home_menus: Vec<MenuItem>,
     select_menu: usize,
     input_content: Option<SharedString>,
-    input_state: Option<gpui::Entity<InputState>>,
-    subscription: Option<gpui::Subscription>,
+    input_state: gpui::Entity<InputState>,
+
+    #[allow(dead_code)]
+    subscription: gpui::Subscription,
 }
 
 #[derive(
@@ -33,34 +40,48 @@ struct MenuItem {
 impl Render for HomeMenu {
     fn render(
         &mut self,
-        window: &mut gpui::Window,
+        _window: &mut gpui::Window,
         cx: &mut gpui::Context<Self>,
     ) -> impl gpui::IntoElement {
-        gpui::div().child(self.init_menu(cx)).child(self.init_search_bar(window, cx))
+        gpui::div()
+            .child(self.render_menu(cx))
+            .child(self.render_search_bar())
     }
-        
 }
 
 impl HomeMenu {
-    pub fn new() -> Self {
-        Self {
+    pub fn new(window: &mut gpui::Window, cx: &mut gpui::Context<Self>) -> Self {
+        let input_state = cx.new(|cx| InputState::new(window, cx).placeholder("请输入任务标题"));
+
+        let subscription = cx.subscribe_in(
+            &input_state,
+            window,
+            |view, state, event, _window, cx| match event {
+                gpui_component::input::InputEvent::Change => {
+                    let text = state.read(cx).value();
+                    view.input_content = Some(text);
+                }
+                gpui_component::input::InputEvent::PressEnter { secondary } => {
+                    println!("Enter pressed, secondary: {}", secondary);
+                }
+                gpui_component::input::InputEvent::Focus => println!("Input focused"),
+                gpui_component::input::InputEvent::Blur => println!("Input blurred"),
+            },
+        );
+
+        let mut instance = Self {
             home_menus: vec![],
             select_menu: 0,
             input_content: None,
-            input_state: None,
-            subscription: None,
-        }
+            input_state,
+            subscription,
+        };
+
+        instance.load_menus(cx);
+        instance
     }
 
-    fn init_menu(&mut self, cx: &mut gpui::Context<Self>) -> impl gpui::IntoElement {
-        let default_button_variant = ButtonCustomVariant::new(cx)
-            .color(Hsla::white())
-            .hover(hsl(40.0, 5.0, 88.0))
-            .active(hsl(189.0, 91.0, 40.0));
-
-        let menu_container = gpui::div().p_2().mt(px(60.0)).w_full().h_flex().gap_2();
-
-        // 异步加载菜单数据
+    fn load_menus(&mut self, cx: &mut gpui::Context<Self>) {
         cx.spawn(async move |weak_entity, cx| -> Result<()> {
             let config_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR")?)
                 .join("config")
@@ -74,6 +95,16 @@ impl HomeMenu {
             Ok(())
         })
         .detach();
+    }
+
+    fn render_menu(&mut self, cx: &mut gpui::Context<Self>) -> impl gpui::IntoElement {
+        let default_button_variant = ButtonCustomVariant::new(cx)
+            .color(Hsla::white())
+            .hover(hsl(40.0, 5.0, 88.0))
+            .active(hsl(189.0, 91.0, 40.0));
+
+        let menu_container = gpui::div().p_2().mt(px(60.0)).w_full().h_flex().gap_2();
+
         let mut childrens = vec![];
         for (index, item) in self.home_menus.iter().enumerate() {
             let btn_id = ElementId::Name(SharedString::new(format!("btn-{:?}", item.id())));
@@ -100,27 +131,17 @@ impl HomeMenu {
         menu_container.children(childrens)
     }
 
-
-    fn init_search_bar(&mut self, window: &mut gpui::Window, cx: &mut gpui::Context<Self>) -> impl gpui::IntoElement {
-        if self.input_state.is_none() {
-            let input_state = cx.new(|cx| InputState::new(window, cx).placeholder("请输入任务标题"));
-            let subscription = cx.subscribe_in(&input_state, window, |view, state, event, _window, cx| {
-                match event {
-                    gpui_component::input::InputEvent::Change => {
-                        let text = state.read(cx).value();
-                        view.input_content = Some(text);
-                    }
-                    gpui_component::input::InputEvent::PressEnter { secondary } => {
-                        println!("Enter pressed, secondary: {}", secondary);
-                    }
-                    gpui_component::input::InputEvent::Focus => println!("Input focused"),
-                    gpui_component::input::InputEvent::Blur => println!("Input blurred"),
-                }
-            });
-            self.input_state = Some(input_state);
-            self.subscription = Some(subscription);
-        }
-        
-        Input::new(self.input_state.as_ref().unwrap()).large().cleanable(true)
+    fn render_search_bar(&self) -> impl gpui::IntoElement {
+        gpui::div()
+            .flex()
+            .w_full()
+            .mt(px(10.0))
+            .justify_center()
+            .child(
+                Input::new(&self.input_state)
+                    .w(relative(0.95))
+                    .large()
+                    .cleanable(true),
+            )
     }
 }
