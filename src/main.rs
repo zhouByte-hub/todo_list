@@ -1,9 +1,8 @@
-use std::path::PathBuf;
+use std::{fs, io::Write, path::PathBuf};
 
 use anyhow::{Error, Ok, Result};
 use gpui::{AppContext, Application, Bounds, Pixels, Size, WindowBounds};
 use gpui_component::{Root, Theme};
-use tokio::io::AsyncWriteExt;
 
 use crate::{components::layout::TodoLayout, todo_icon_assets::TodoIconAssets};
 mod components;
@@ -46,7 +45,7 @@ fn main() {
                 cx.new(|cx| Root::new(layout, window, cx))
             });
             if let Err(e) = root_window {
-                record_error(&e).await?;
+                record_error(&e)?;
             }
             Ok(())
         })
@@ -54,18 +53,18 @@ fn main() {
     });
 }
 
-async fn record_error(e: &Error) -> Result<()> {
+fn record_error(e: &Error) -> Result<()> {
     let mut launch_error_path = PathBuf::from("./logs");
     if !launch_error_path.exists() {
-        tokio::fs::create_dir(&launch_error_path).await?;
+        fs::create_dir(&launch_error_path)?;
     }
     launch_error_path.push("/Launch.log");
     if launch_error_path.exists() {
-        tokio::fs::remove_file(&launch_error_path).await?;
+        fs::remove_file(&launch_error_path)?;
     }
-    let mut error_file = tokio::fs::OpenOptions::new()
+    let mut error_file = fs::OpenOptions::new()
         .write(true)
-        .open(launch_error_path)
-        .await?;
-    Ok(error_file.write_all(e.to_string().as_bytes()).await?)
+        .create(true)
+        .open(launch_error_path)?;
+    Ok(error_file.write_all(e.to_string().as_bytes())?)
 }

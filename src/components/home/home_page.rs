@@ -1,11 +1,12 @@
-use std::{env, path::PathBuf};
+use std::{env, fs, path::PathBuf};
 
 use crate::components::{
     home::{header::HomeHeader, menu::HomeMenu},
     interface::PageLayout,
 };
 use anyhow::{Ok, Result};
-use gpui::{AppContext, ParentElement, Render};
+use gpui::{AppContext, ParentElement, Render, SharedString, Styled, px, relative};
+use gpui_component::hsl;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
@@ -32,9 +33,7 @@ impl TodoListHome {
             home_menu: cx.new(|cx| HomeMenu::new(window, cx)),
             task_list: vec![],
         };
-        
         instance.load_task_list(cx);
-        
         instance
     }
 }
@@ -54,6 +53,31 @@ impl PageLayout for TodoListHome {
         gpui::div()
             .child(self.home_header.clone())
             .child(self.home_menu.clone())
+            .child(
+                gpui::div()
+                    .w_full()
+                    .mt_3()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .justify_center()
+                    .child(
+                        gpui::div()
+                            .w(relative(0.35))
+                            .h_0p5()
+                            .bg(hsl(0.0, 0.0, 92.0))
+                            .mr(px(12.0)),
+                    )
+                    .child(SharedString::new("任务列表"))
+                    .text_color(hsl(0.0, 0.0, 76.0))
+                    .child(
+                        gpui::div()
+                            .w(relative(0.35))
+                            .h_0p5()
+                            .bg(hsl(0.0, 0.0, 92.0))
+                            .ml(px(12.0)),
+                    ),
+            )
             .child(self.task_list())
     }
 }
@@ -81,27 +105,27 @@ impl TodoListHome {
             let task_list_data_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR")?)
                 .join("data")
                 .join("task_list.json");
-            
+
             // 如果文件不存在，创建目录和空文件
             if !task_list_data_path.exists() {
                 // 获取父目录并创建
                 if let Some(parent_dir) = task_list_data_path.parent() {
-                    tokio::fs::create_dir_all(parent_dir).await?;
+                    fs::create_dir_all(parent_dir)?;
                 }
                 // 创建空的 JSON 数组文件
-                tokio::fs::write(&task_list_data_path, "[]").await?;
+                fs::write(&task_list_data_path, "[]")?;
                 return Ok(());
             }
-            
+
             // 读取文件内容为字符串
-            let list_json = tokio::fs::read_to_string(&task_list_data_path).await?;
+            let list_json = fs::read_to_string(&task_list_data_path)?;
             let task_list: Vec<Task> = serde_json::from_str(&list_json)?;
-            
+
             // 更新实体状态
             weak_entity.update(cx, |entity, _cx| {
                 entity.task_list = task_list;
             })?;
-            
+
             Ok(())
         })
         .detach();
