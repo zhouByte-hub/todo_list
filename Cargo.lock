@@ -5800,6 +5800,7 @@ dependencies = [
  "getset",
  "gpui",
  "gpui-component",
+ "lazy_static",
  "rust-embed",
  "serde",
  "serde_json",

@@ -2,7 +2,7 @@
   {
     "id": 1,
     "task_name": "完成项目文档",
-    "priority": 3,
+    "priority": "high",
     "create_time": "2024-01-15 09:00:00",
     "overdue_time": "2024-01-20 18:00:00",
     "description": "编写项目的技术文档和用户手册"
@@ -10,7 +10,7 @@
   {
     "id": 2,
     "task_name": "代码审查",
-    "priority": 2,
+    "priority": "medium",
     "create_time": "2024-01-16 10:30:00",
     "overdue_time": null,
     "description": "审查团队成员提交的 PR 代码"
@@ -18,7 +18,7 @@
   {
     "id": 3,
     "task_name": "学习 Rust 异步编程",
-    "priority": 1,
+    "priority": "low",  
     "create_time": "2024-01-17 14:00:00",
     "overdue_time": "2024-01-25 20:00:00",
     "description": "深入学习 async/await 和 tokio 运行时"
@@ -26,7 +26,7 @@
   {
     "id": 4,
     "task_name": "修复登录页面 Bug",
-    "priority": 3,
+    "priority": "high",
     "create_time": "2024-01-18 11:15:00",
     "overdue_time": "2024-01-19 12:00:00",
     "description": "解决用户反馈的登录验证问题"
@@ -34,7 +34,7 @@
   {
     "id": 5,
     "task_name": "优化数据库查询",
-    "priority": 2,
+    "priority": "medium",
     "create_time": "2024-01-19 16:45:00",
     "overdue_time": null,
     "description": "提升查询性能，添加必要的索引"

@@ -1,13 +1,23 @@
-use std::{env, fs, path::PathBuf};
+use std::{collections::HashMap, env, fs, path::PathBuf};
 
 use crate::components::{
     home::{header::HomeHeader, menu::HomeMenu},
     interface::PageLayout,
 };
 use anyhow::{Ok, Result};
-use gpui::{AppContext, ParentElement, Render, SharedString, Styled, px, relative};
+use gpui::{AppContext, Hsla, ParentElement, Render, SharedString, Styled, px, relative};
 use gpui_component::hsl;
 use serde::{Deserialize, Serialize};
+
+lazy_static::lazy_static! {
+    static ref TASK_ICON_PATH: HashMap<String, String> = {
+        let mut map = HashMap::new();
+        map.insert("high".to_string(), "icon/home/high.png".to_string());
+        map.insert("medium".to_string(), "icon/home/medium.png".to_string());
+        map.insert("low".to_string(), "icon/home/low.png".to_string());
+        map
+    };
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct TodoListHome {
@@ -20,7 +30,7 @@ pub(crate) struct TodoListHome {
 struct Task {
     id: i64,
     task_name: String,
-    priority: u8,
+    priority: String,
     create_time: String,
     overdue_time: Option<String>,
     description: String,
@@ -84,19 +94,59 @@ impl PageLayout for TodoListHome {
 
 impl TodoListHome {
     fn task_list(&mut self) -> impl gpui::IntoElement {
-        gpui::div().children(self.task_list.iter().map(|task| {
+        let default_icon = String::from("icon/home/high.png");
+        let task_childrens = self.task_list.iter().map(|task| {
+            let icon_path = TASK_ICON_PATH.get(&task.priority).unwrap_or(&default_icon);
             gpui::div()
-                .child(task.task_name.clone())
-                .child(task.priority.to_string())
-                .child(task.create_time.to_string())
+                .w(relative(0.95))
+                .mb_2()
+                .bg(Hsla::white())
+                .rounded(px(12.0))
+                .p_2()
+                .pl_12()
+                .relative()
                 .child(
-                    task.overdue_time
-                        .as_ref()
-                        .map(|t| t.to_string())
-                        .unwrap_or_default(),
+                    gpui::img(icon_path.as_str())
+                        .w(px(50.0))
+                        .h(px(50.0))
+                        .absolute()
+                        .top(px(-8.0))
+                        .left(px(-8.0)),
                 )
-                .child(task.description.clone())
-        }))
+                .child(
+                    gpui::div()
+                        .child(
+                            gpui::div()
+                                .child(task.task_name.clone())
+                                .text_size(px(18.0))
+                                .text_color(hsl(0.0, 0.0, 20.0)),
+                        )
+                        .child(
+                            gpui::div()
+                                .child(task.description.clone())
+                                .text_size(px(14.0))
+                                .text_color(hsl(0.0, 0.0, 60.0)),
+                        ),
+                )
+                .child(
+                    gpui::div().w_full().flex().justify_end().child(
+                        gpui::div()
+                            .child(
+                                task.overdue_time
+                                    .clone()
+                                    .unwrap_or("未设置逾期时间".to_string()),
+                            )
+                            .text_color(hsl(0.0, 0.0, 80.0))
+                            .text_size(px(12.0)),
+                    ),
+                )
+        });
+        gpui::div()
+            .w_full()
+            .flex()
+            .flex_col()
+            .items_center()
+            .children(task_childrens)
     }
 
     // 使用 json 文件代替数据库操作
