@@ -3,7 +3,7 @@ use std::{env, fs, path::PathBuf};
 use anyhow::Result;
 use getset::{CloneGetters, Getters, MutGetters, Setters, WithSetters};
 use gpui::{
-    AppContext, ElementId, Hsla, ParentElement, Render, SharedString, Styled, px, relative,
+    AppContext, ElementId, EventEmitter, Hsla, ParentElement, Render, SharedString, Styled, px, relative,
 };
 use gpui_component::{
     Sizable, StyledExt,
@@ -12,6 +12,12 @@ use gpui_component::{
     input::{Input, InputState},
 };
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone)]
+pub enum HomeMenuEvent {
+    MenuSelected(usize, String),
+    SearchChanged(String),
+}
 
 pub(crate) struct HomeMenu {
     home_menus: Vec<MenuItem>,
@@ -22,6 +28,8 @@ pub(crate) struct HomeMenu {
     #[allow(dead_code)]
     subscription: gpui::Subscription,
 }
+
+impl EventEmitter<HomeMenuEvent> for HomeMenu {}
 
 #[derive(
     Debug, Clone, Deserialize, Serialize, Getters, Setters, WithSetters, MutGetters, CloneGetters,
@@ -59,7 +67,8 @@ impl HomeMenu {
             |view, state, event, _window, cx| match event {
                 gpui_component::input::InputEvent::Change => {
                     let text = state.read(cx).value();
-                    view.input_content = Some(text);
+                    view.input_content = Some(text.clone());
+                    cx.emit(HomeMenuEvent::SearchChanged(text.to_string()));
                 }
                 gpui_component::input::InputEvent::PressEnter { secondary } => {
                     println!("Enter pressed, secondary: {}", secondary);
@@ -108,6 +117,7 @@ impl HomeMenu {
         let mut childrens = vec![];
         for (index, item) in self.home_menus.iter().enumerate() {
             let btn_id = ElementId::Name(SharedString::new(format!("btn-{:?}", item.id())));
+            let category = item.category().clone();
             let mut btn = Button::new(btn_id)
                 .label(item.title())
                 .w(px(80.0))
@@ -124,6 +134,7 @@ impl HomeMenu {
             }
             btn = btn.on_click(cx.listener(move |this, _event, _window, cx| {
                 this.select_menu = index;
+                cx.emit(HomeMenuEvent::MenuSelected(index, category.clone()));
                 cx.notify();
             }));
             childrens.push(btn);

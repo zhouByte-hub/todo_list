@@ -5,21 +5,17 @@
 }, {
     "id": 2,
     "title": "紧急",
-    "category": "urgent"
+    "category": "high"
 }, {
     "id": 3,
-    "title": "已暂停",
-    "category": "paused"
+    "title": "加急",
+    "category": "medium"
 }, {
     "id": 4,
-    "title": "已完成",
-    "category": "completed"
+    "title": "普通",
+    "category": "low"
 }, {
     "id": 5,
-    "title": "已取消",
-    "category": "cancelled"
-}, {
-    "id": 6,
-    "title": "延期",
-    "category": "delayed"
+    "title": "已完成",
+    "category": "completed"
 }]

@@ -1,11 +1,11 @@
 use std::{collections::HashMap, env, fs, path::PathBuf};
 
 use crate::components::{
-    home::{header::HomeHeader, menu::HomeMenu},
+    home::{header::HomeHeader, menu::{HomeMenu, HomeMenuEvent}},
     interface::PageLayout,
 };
 use anyhow::{Ok, Result};
-use gpui::{AppContext, Hsla, ParentElement, Render, SharedString, Styled, px, relative};
+use gpui::{AppContext, Hsla, InteractiveElement, ParentElement, Render, SharedString, StatefulInteractiveElement, Styled, px, relative};
 use gpui_component::hsl;
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +24,9 @@ pub(crate) struct TodoListHome {
     home_header: gpui::Entity<HomeHeader>,
     home_menu: gpui::Entity<HomeMenu>,
     task_list: Vec<Task>,
+    all_tasks: Vec<Task>,
+    selected_category: String,
+    search_text: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -38,13 +41,52 @@ struct Task {
 
 impl TodoListHome {
     pub fn new(window: &mut gpui::Window, cx: &mut gpui::Context<Self>) -> Self {
+        let home_menu = cx.new(|cx| {
+            HomeMenu::new(window, cx)
+        });
+        
         let mut instance = Self {
             home_header: cx.new(|_| HomeHeader::new()),
-            home_menu: cx.new(|cx| HomeMenu::new(window, cx)),
+            home_menu,
             task_list: vec![],
+            all_tasks: vec![],
+            selected_category: "all".to_string(),
+            search_text: String::new(),
         };
+        
+        instance.setup_menu_listener(cx);
         instance.load_task_list(cx);
         instance
+    }
+    
+    fn setup_menu_listener(&mut self, cx: &mut gpui::Context<Self>) {
+        let home_menu = self.home_menu.clone();
+        // 在 cx.subscribe 的回调中修改实体状态时，GPUI 会 自动触发重新渲染 。这是 GPUI 事件系统的核心特性
+        cx.subscribe(&home_menu, move |this, _menu, event, _cx| {
+            match event {
+                HomeMenuEvent::MenuSelected(_index, category) => {
+                    this.selected_category = category.clone();
+                    this.filter_tasks();
+                }
+                HomeMenuEvent::SearchChanged(text) => {
+                    this.search_text = text.clone();
+                    this.filter_tasks();
+                }
+            }
+        }).detach();
+    }
+    
+    fn filter_tasks(&mut self) {
+        self.task_list = self.all_tasks.iter()
+            .filter(|task| {
+                let category_match = self.selected_category == "all" || task.priority == self.selected_category;
+                let search_match = self.search_text.is_empty() || 
+                    task.task_name.to_lowercase().contains(&self.search_text.to_lowercase()) ||
+                    task.description.to_lowercase().contains(&self.search_text.to_lowercase());
+                category_match && search_match
+            })
+            .cloned()
+            .collect();
     }
 }
 
@@ -60,9 +102,13 @@ impl Render for TodoListHome {
 
 impl PageLayout for TodoListHome {
     fn page_layout(&mut self, _cx: &mut gpui::Context<Self>) -> impl gpui::IntoElement {
+        let home_menu = self.home_menu.clone();
         gpui::div()
+            .h_full()
+            .flex()
+            .flex_col()
             .child(self.home_header.clone())
-            .child(self.home_menu.clone())
+            .child(home_menu)
             .child(
                 gpui::div()
                     .w_full()
@@ -142,10 +188,15 @@ impl TodoListHome {
                 )
         });
         gpui::div()
+            .id("home_page_scrollable_container")
             .w_full()
+            .flex_1()
+            .pt_3()
+            .pb_16()
             .flex()
             .flex_col()
             .items_center()
+            .overflow_y_scroll()
             .children(task_childrens)
     }
 
@@ -173,7 +224,8 @@ impl TodoListHome {
 
             // 更新实体状态
             weak_entity.update(cx, |entity, _cx| {
-                entity.task_list = task_list;
+                entity.all_tasks = task_list;
+                entity.filter_tasks();
             })?;
 
             Ok(())
