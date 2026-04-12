@@ -1,5 +1,5 @@
 use chrono::{Datelike, Local, Weekday};
-use gpui::{Corners, Hsla, ParentElement, Render, SharedString, Styled, px};
+use gpui::{Corners, Hsla, ParentElement, Render, SharedString, Styled, px, relative};
 use gpui_component::{StyledExt, hsl, progress::Progress};
 
 pub(crate) struct HomeHeader {
@@ -52,7 +52,7 @@ impl HomeHeader {
 
         gpui::div()
             .absolute()
-            .w_4_5()
+            .w(relative(0.85))
             .h(px(120.0))
             .bg(Hsla::white())
             .rounded(px(10.0))

@@ -29,8 +29,8 @@ fn main() {
         window_options.window_bounds = Some(WindowBounds::Windowed(bounds));
 
         // 设置窗口为弹出窗口
-        window_options.kind = gpui::WindowKind::PopUp;
-        window_options.focus = true;
+        // window_options.kind = gpui::WindowKind::PopUp;
+        // window_options.focus = true;
 
         // 修改 titleBar 样式
         let mut title_bar_options = gpui::TitlebarOptions::default();
