@@ -124,6 +124,9 @@ impl Render for AddTaskModal {
         gpui::div()
             .absolute()
             .inset_0()
+            .flex()
+            .justify_center()
+            .items_center()
             .child(
                 gpui::div()
                     .id("modal_backdrop")
@@ -137,25 +140,21 @@ impl Render for AddTaskModal {
             )
             .child(
                 gpui::div()
-                    .absolute()
-                    .inset_0()
+                    .id("modal_content")
+                    .relative()
+                    .w(px(450.0))
+                    .bg(Hsla::white())
+                    .rounded(px(16.0))
+                    .shadow_xl()
                     .flex()
-                    .justify_center()
-                    .items_center()
-                    .child(
-                        gpui::div()
-                            .id("modal_content")
-                            .w(px(450.0))
-                            .bg(Hsla::white())
-                            .rounded(px(16.0))
-                            .shadow_xl()
-                            .flex()
-                            .flex_col()
-                            .overflow_hidden()
-                            .child(self.render_header(cx))
-                            .child(self.render_form(cx))
-                            .child(self.render_footer(cx)),
-                    ),
+                    .flex_col()
+                    .overflow_hidden()
+                    .on_click(cx.listener(|_, _, _, _| {
+                        // 阻止事件冒泡到背景层
+                    }))
+                    .child(self.render_header(cx))
+                    .child(self.render_form(cx))
+                    .child(self.render_footer(cx)),
             )
             .into_any_element()
     }
