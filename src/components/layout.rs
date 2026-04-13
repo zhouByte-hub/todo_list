@@ -1,5 +1,6 @@
 use crate::components::{
     category::category_page::CategoryPage, home::home_page::TodoListHome,
+    modal::AddTaskModal,
     profile::profile_page::ProfilePage, reminder::reminder_page::ReminderPage,
 };
 use gpui::{
@@ -8,19 +9,34 @@ use gpui::{
 };
 use gpui_component::{Icon, Sizable, StyledExt, hsl};
 
-#[derive(Debug)]
 pub(crate) struct TodoLayout {
     selected_menu: usize,
     pages: [Option<AnyView>; 4],
+    add_task_modal: gpui::Entity<AddTaskModal>,
+    home_page: Option<gpui::Entity<TodoListHome>>,
 }
 
 impl TodoLayout {
     pub fn new(window: &mut gpui::Window, cx: &mut gpui::Context<Self>) -> Self {
         let home_page = cx.new(|cx| TodoListHome::new(window, cx));
-        let pages: [Option<AnyView>; 4] = [Some(home_page.into()), None, None, None];
+        let pages: [Option<AnyView>; 4] = [Some(home_page.clone().into()), None, None, None];
+        
+        let add_task_modal = cx.new(|cx| {
+            let mut modal = AddTaskModal::new(window, cx);
+            let home_page_clone = home_page.clone();
+            modal.set_on_save_success(move |cx| {
+                home_page_clone.update(cx, |home, cx| {
+                    home.load_task_list(cx);
+                });
+            });
+            modal
+        });
+        
         Self {
             selected_menu: 0,
             pages,
+            add_task_modal,
+            home_page: Some(home_page),
         }
     }
 }
@@ -46,6 +62,7 @@ impl Render for TodoLayout {
                         .child(current_page.clone()),
                 )
                 .child(self.tabber(cx))
+                .child(self.add_task_modal.clone())
         } else {
             let error_image = img("images/app_error.png").w_full().h(px(250.0));
             div = gpui::div()
@@ -95,26 +112,37 @@ impl TodoLayout {
                 String::from("icon/tabber/layout-dashboard.svg"),
                 cx,
             ))
-            .child(
-                gpui::div()
-                    .bottom(px(25.0))
-                    .bg(hsl(191.0, 98.0, 42.0))
-                    .border(px(6.5))
-                    .border_color(Hsla::white())
-                    .rounded(px(50.0))
-                    .size(px(65.0))
-                    .flex()
-                    .justify_center()
-                    .items_center()
-                    .child(
-                        Icon::default()
-                            .path("icon/tabber/plus.svg")
-                            .text_color(Hsla::white())
-                            .large(),
-                    ),
-            )
+            .child(self.render_add_button(cx))
             .child(self.set_menu("提醒", 2, String::from("icon/tabber/bell-ring.svg"), cx))
             .child(self.set_menu("我的", 3, String::from("icon/tabber/user.svg"), cx))
+    }
+
+    fn render_add_button(&self, cx: &gpui::Context<Self>) -> Stateful<Div> {
+        gpui::div()
+            .id("add_task_button")
+            .bottom(px(25.0))
+            .bg(hsl(191.0, 98.0, 42.0))
+            .border(px(6.5))
+            .border_color(Hsla::white())
+            .rounded(px(50.0))
+            .size(px(65.0))
+            .flex()
+            .justify_center()
+            .items_center()
+            .cursor_pointer()
+            .hover(|style| style.bg(hsl(191.0, 98.0, 38.0)))
+            .active(|style| style.bg(hsl(191.0, 98.0, 35.0)))
+            .child(
+                Icon::default()
+                    .path("icon/tabber/plus.svg")
+                    .text_color(Hsla::white())
+                    .large(),
+            )
+            .on_click(cx.listener(|this, _, window, cx| {
+                this.add_task_modal.update(cx, |modal, cx| {
+                    modal.show(window, cx);
+                });
+            }))
     }
 
     fn set_selected_menu_color(&self, menu_index: usize, current_menu_index: usize) -> Hsla {
@@ -157,8 +185,22 @@ impl TodoLayout {
                     if this.pages[menu_index].is_none() {
                         this.pages[menu_index] = match menu_index {
                             0 => Some(cx.new(|cx| TodoListHome::new(window, cx)).into()),
-                            1 => Some(cx.new(|_| CategoryPage::default()).into()),
-                            2 => Some(cx.new(|_| ReminderPage::default()).into()),
+                            1 => {
+                                let category_page = cx.new(|cx| {
+                                    let mut page = CategoryPage::default();
+                                    page.load_tasks(cx);
+                                    page
+                                });
+                                Some(category_page.into())
+                            }
+                            2 => {
+                                let reminder_page = cx.new(|cx| {
+                                    let mut page = ReminderPage::default();
+                                    page.load_reminders(cx);
+                                    page
+                                });
+                                Some(reminder_page.into())
+                            }
                             3 => Some(cx.new(|_| ProfilePage::default()).into()),
                             _ => None,
                         };

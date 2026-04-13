@@ -1,6 +1,7 @@
 pub(crate) mod category;
 pub(crate) mod home;
 pub(crate) mod layout;
+pub(crate) mod modal;
 pub(crate) mod profile;
 pub(crate) mod reminder;
 

@@ -201,7 +201,7 @@ impl TodoListHome {
     }
 
     // 使用 json 文件代替数据库操作
-    fn load_task_list(&mut self, cx: &mut gpui::Context<Self>) {
+    pub fn load_task_list(&mut self, cx: &mut gpui::Context<Self>) {
         cx.spawn(async move |weak_entity, cx| -> Result<()> {
             let task_list_data_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR")?)
                 .join("data")
