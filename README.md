@@ -4,21 +4,40 @@
 
 ## 效果预览
 
+<table>
+<tr>
+<td width="50%">
+
 ### 首页
 
 ![首页效果图](docs/home_page.png)
+
+</td>
+<td width="50%">
 
 ### 分类页
 
 ![分类页效果图](docs/category.png)
 
+</td>
+</tr>
+<tr>
+<td width="50%">
+
 ### 提醒页
 
 ![提醒页效果图](docs/notify.png)
 
+</td>
+<td width="50%">
+
 ### 我的页
 
 ![我的页效果图](docs/profile.png)
+
+</td>
+</tr>
+</table>
 
 ## 功能特性
 
